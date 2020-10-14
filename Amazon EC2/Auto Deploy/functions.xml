@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="MyFunctions"  default="">
+	<scriptdef name="substring" language="javascript">
+	 <attribute name="text" />
+	 <attribute name="start" />
+	 <attribute name="end" />
+	 <attribute name="property" />
+	 <![CDATA[
+	   var text = attributes.get("text");
+	   var start = parseInt(attributes.get("start"));
+	   var end = parseInt(attributes.get("end")) || text.length;
+	   if (start <= end) {
+		   project.setProperty(attributes.get("property"), text.substring(start, end));
+	   } else {
+		   project.setProperty(attributes.get("property"), '');
+	   }
+	 ]]>
+	</scriptdef>
+
+	<scriptdef name="indexOf" language="javascript">
+	 <attribute name="text" />
+	 <attribute name="pattern" />
+	 <attribute name="property" />
+	 <![CDATA[
+	   var text = attributes.get("text");
+	   var pattern = attributes.get("pattern");
+	   project.setProperty(attributes.get("property"), text.indexOf(pattern));
+	 ]]>
+	</scriptdef>
+
+	<scriptdef name="lastindexOf" language="javascript">
+	 <attribute name="text" />
+	 <attribute name="pattern" />
+	 <attribute name="property" />
+	 <![CDATA[
+	   var text = attributes.get("text");
+	   var pattern = attributes.get("pattern");
+	   project.setProperty(attributes.get("property"), text.lastIndexOf(pattern));
+	 ]]>
+	</scriptdef>
+
+	<scriptdef name="strlen" language="javascript">
+	 <attribute name="text" />
+	 <attribute name="property" />
+	 <![CDATA[
+	   var text = attributes.get("text");
+	   project.setProperty(attributes.get("property"), text.length());
+	 ]]>
+	</scriptdef>
+
+	<scriptdef name="upperCase" language="javascript">
+	 <attribute name="text" />
+	 <attribute name="property" />
+	 <![CDATA[
+	   var text = attributes.get("text");
+	   project.setProperty(attributes.get("property"), text.toUpperCase());
+	 ]]>
+	</scriptdef>
+
+	<scriptdef name="lowerCase" language="javascript">
+	 <attribute name="text" />
+	 <attribute name="property" />
+	 <![CDATA[
+	   var text = attributes.get("text");
+	   project.setProperty(attributes.get("property"), text.toLowerCase());
+	 ]]>
+	</scriptdef>
+
+	<scriptdef name="setProperty" language="javascript">
+	 <attribute name="text" />
+	 <attribute name="property" />
+	 <![CDATA[
+	   var text = attributes.get("text");
+	   project.setProperty(attributes.get("property"), text);
+	 ]]>
+	</scriptdef>
+
+	<scriptdef name="add" language="javascript">
+	 <attribute name="arg1" />
+	 <attribute name="arg2" />
+	 <attribute name="property" />
+	 <![CDATA[
+	   var arg1 = attributes.get("arg1");
+	   var arg2 = attributes.get("arg2");
+	   project.setProperty(attributes.get("property"), parseInt(arg1)+parseInt(arg2));
+	 ]]>
+	</scriptdef>
+
+	<scriptdef name="addFloat" language="javascript">
+	 <attribute name="arg1" />
+	 <attribute name="arg2" />
+	 <attribute name="property" />
+	 <![CDATA[
+	   var arg1 = attributes.get("arg1");
+	   var arg2 = attributes.get("arg2");
+	   project.setProperty(attributes.get("property"), parseFloat(arg1)+parseFloat(arg2));
+	 ]]>
+	</scriptdef>
+
+	<scriptdef name="isZero" language="javascript">
+	 <attribute name="value" />
+	 <attribute name="property" />
+	 <![CDATA[
+	   var value = attributes.get("value");
+	   project.setProperty(attributes.get("property"), value == 0);
+	 ]]>
+	</scriptdef>
+
+	<scriptdef name="containsCaseless" language="javascript">
+	 <attribute name="text" />
+	 <attribute name="pattern" />
+	 <attribute name="property" />
+	 <![CDATA[
+	   var text = attributes.get("text");
+	   var pattern = attributes.get("pattern");
+	   project.setProperty(attributes.get("property"), text.toLowerCase().indexOf(pattern.toLowerCase()) > -1);
+	 ]]>
+	</scriptdef>
+	
+	<scriptdef name="bothTrue" language="javascript">
+	 <attribute name="arg1" />
+	 <attribute name="arg2" />
+	 <attribute name="property" />
+	 <![CDATA[
+	   var arg1 = attributes.get("arg1");
+	   var arg2 = attributes.get("arg2");
+	   project.setProperty(attributes.get("property"), (arg1 == true) && (arg2 == true));
+	 ]]>
+	</scriptdef>
+	
+	<scriptdef name="eitherTrue" language="javascript">
+	 <attribute name="arg1" />
+	 <attribute name="arg2" />
+	 <attribute name="property" />
+	 <![CDATA[
+	   var arg1 = attributes.get("arg1");
+	   var arg2 = attributes.get("arg2");
+	   project.setProperty(attributes.get("property"), (arg1 == true) || (arg2 == true));
+	 ]]>
+	</scriptdef>
+	
+</project>

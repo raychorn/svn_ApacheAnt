@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="AutoDeployEC2" basedir="." default="go">
+
+	<include file="${basedir}/functions.xml"/>
+
+	<property name="pant.home" value="${basedir}/lib" />
+	
+	<property name="target_img_ext" value="img" />
+
+	<property name="VBoxManage.log.filename" value="${basedir}/VBoxManage.txt" />
+	
+	<property name="EC2_HOME" value="\ec2-api-tools-1.4.2.4" />
+	
+	<property name="jython.home" value="${basedir}/lib" />
+	<path id="pant.classpath">
+		<pathelement path="${pant.home}/pant.jar"/>
+		<pathelement path="${jython.home}/jython.jar"/>
+	</path>
+
+	<taskdef resource="com/myarch/antjython/jython-antlib.xml"
+		loaderref="pant.classpath.loader" 
+		classpathref="pant.classpath" />
+
+	<path id="python.path" >
+		<pathelement path="${basedir}"/>
+	</path>
+	
+	<jythonInit pythonPathRef="python.path" pythonHome="${jython.home}" />
+
+	<target name="setup">
+		<setProperty text="${expected_ext}" property="vdi" />
+
+		<echo>sourcefile = ${sourcefile}</echo>
+		<strlen text="${sourcefile}" property="_length" />
+		<echo message="_length = ${_length}" />
+
+		<isZero value="${_length}" property="_isZeroSourcefile" />
+		<echo message="_isZeroSourcefile = ${_isZeroSourcefile}" />
+
+		<echo>virtualBoxHome = ${virtualBoxHome}</echo>
+		<strlen text="${virtualBoxHome}" property="_lengthVirtualBoxHome" />
+		<echo message="_lengthVirtualBoxHome = ${_lengthVirtualBoxHome}" />
+
+		<isZero value="${_lengthVirtualBoxHome}" property="_isZeroVirtualBoxHome" />
+		<echo message="_isZeroVirtualBoxHome = ${_isZeroVirtualBoxHome}" />
+
+		<setProperty text="${sourcefile}" property="_fileName" />
+		<echo message="_fileName = ${_fileName}" />
+		<strlen text="${_fileName}" property="_length" />
+		<echo message="_length = ${_length}" />
+
+		<lastindexOf text="${_fileName}" pattern="." property="_indexOf"/>
+		<echo message="_indexOf = ${_indexOf}" />
+
+		<substring text="${_fileName}" start="0" end="${_indexOf}" property="_fname" />
+		<echo message="_fname = ${_fname}" />
+		<add arg1="${_indexOf}" arg2="1" property="_indexOf" />
+		<echo message="_indexOf = ${_indexOf}" />
+		<addFloat arg1="${_indexOf}" arg2="1" property="_indexOf2" />
+		<echo message="_indexOf2 = ${_indexOf2}" />
+		<substring text="${_fileName}" start="${_indexOf}" end="${_length}" property="_ext" />
+		<echo message="_ext = ${_ext}" />
+
+        <condition property="extIsWellBool">
+            <not>
+                <equals arg1="${_ext}" arg2="${expected_ext}" trim="true"/>
+            </not>
+        </condition>
+		<echo message="extIsWellBool = ${extIsWellBool}" />
+		
+		<jython  import="from python_functions import *" exec="normalize_folder('EC2_HOME',basedir,EC2_HOME)" />
+	</target>
+
+	<target name="check-sourcefile" depends="setup">
+		<available file="${sourcefile}" property="sourcefile.present"/>
+		<echo message="sourcefile.present = ${sourcefile.present}" />
+        <condition property="sourcefile.not.present">
+            <not>
+                <equals arg1="${sourcefile.present}" arg2="true" trim="true"/>
+            </not>
+        </condition>
+		<echo message="sourcefile.not.present = ${sourcefile.not.present}" />
+	</target>
+
+	<target name="sourcefile_is_empty" depends="setup" if="${_isZeroSourcefile}">
+		<fail message="You must provide -Dsourcefile which is now '${sourcefile}' and is also unacceptable."/>
+	</target>
+	
+	<target name="virtualBoxHome_is_empty" depends="setup" if="${_isZeroVirtualBoxHome}">
+		<fail message="You must provide -DvirtualBoxHome which is now '${virtualBoxHome}' and is also unacceptable."/>
+	</target>
+	
+	<target name="check-virtualBoxHome" depends="setup">
+		<jython  import="from python_functions import *" exec="folder_exists('virtualBoxHome.present',virtualBoxHome)"  />
+        <condition property="virtualBoxHome.not.present">
+            <not>
+                <equals arg1="${virtualBoxHome.present}" arg2="True" trim="true"/>
+            </not>
+        </condition>
+		<echo message="virtualBoxHome.not.present = ${virtualBoxHome.not.present}" />
+	</target>
+
+	<target name="sourcefile_does_not_exist" depends="check-sourcefile" if="sourcefile.not.present">
+		<fail message="You must provide -Dsourcefile which is now '${sourcefile}' (${sourcefile.present}) that must also exist."/>
+	</target>
+	
+	<target name="sourcefile_ext_not_expected" depends="setup" unless="${extIsWellBool}">
+		<fail message="You must provide -Dsourcefile which is now '${sourcefile}' with file ext of '${expected_ext}' and is also unacceptable."/>
+	</target>
+
+	<target name="virtualBoxHome_does_not_exist" depends="check-virtualBoxHome" if="virtualBoxHome.not.present">
+		<fail message="You must provide -DvirtualBoxHome which is now '${virtualBoxHome}' (${virtualBoxHome.present}) that must also exist."/>
+	</target>
+	
+	<target name="jython_task" depends="setup">
+        <jython>
+print "Simple Jython script" 
+# echo property. "ant" variable is defined by jython task
+ant.echo("Echo from python: _isZeroSourcefile=${_isZeroSourcefile}")
+# we can also use properties directly in python as variables
+print "Property from ant: _isZeroSourcefile="+ _isZeroSourcefile
+        </jython>	
+	</target>
+
+    <pimport module="python_functions" />
+
+	<target name="check_imgfile" depends="check-sourcefile" unless="sourcefile.not.present">
+		<jython  import="from python_functions import *" exec="str_replace('imgfile',sourcefile,_ext,target_img_ext)"  />
+		<jython  import="from python_functions import *" exec="normalize('imgfile',imgfile,basedir)"  />
+		<echo message="imgfile = ${imgfile}" />
+		<property name="imgfile.tar" value="${imgfile}.tar" />
+		<property name="imgfile.tar.gz" value="${imgfile}.tar.gz" />
+		<property name="imgfile.tar.gz.present" value="false" />
+		<available file="${imgfile}" property="imgfile.present"/>
+        <condition property="imgfile.not.present">
+            <not>
+                <equals arg1="${imgfile.present}" arg2="true" trim="true"/>
+            </not>
+        </condition>
+		<echo message="imgfile.not.present = ${imgfile.not.present}" />
+	</target>
+
+	<target name="check_os" depends="check_imgfile">
+		<lowerCase text="${os.name}" property="_osName"/>
+		<echo message="os.name = ${os.name}" />
+		<echo message="_osName = ${_osName}" />
+		<indexOf text="${_osName}" pattern="windows" property="_indexOfWindows"/>
+		<echo message="_indexOfWindows = ${_indexOfWindows}" />
+		<containsCaseless text="${os.name}" pattern="Windows" property="_isWindows"/>
+		<echo message="_isWindows = ${_isWindows}" />
+	</target>
+
+	<target name="check_os_supported" depends="check_os">
+		<bothTrue arg1="imgfile.not.present" arg2="_isWindows" property="imgfile.not.present.for.windows"/>
+		<echo message="imgfile.not.present.for.windows = ${imgfile.not.present.for.windows}" />
+	</target>
+	
+	<target name="check_VBoxManage" depends="check_os_supported" if="virtualBoxHome.present">
+		<property name="VBoxManage.filename" value="${virtualBoxHome}/VBoxManage.exe" />
+		<echo message="VBoxManage.filename = ${VBoxManage.filename}" />
+        <condition property="VBoxManage.present">
+			<available file="${VBoxManage.filename}"/>
+        </condition>
+		<echo message="VBoxManage.present = ${VBoxManage.present}" />
+	</target>
+
+	<target name="check_VBoxManage_can_and_should_run" depends="check_VBoxManage">
+		<bothTrue arg1="imgfile.not.present.for.windows" arg2="VBoxManage.present" property="is_VBoxManage_can_and_should_run_for_windows"/>
+		<echo message="is_VBoxManage_can_and_should_run_for_windows = ${is_VBoxManage_can_and_should_run_for_windows}" />
+	</target>
+	
+	<target name="imgfile_is_missing_for_windows" depends="check_VBoxManage_can_and_should_run" if="is_VBoxManage_can_and_should_run_for_windows">
+		<echo message="Running VBoxManage..." />
+		<exec executable="${VBoxManage.filename}" output="${VBoxManage.log.filename}">
+		  <arg line='internalcommands converttoraw "${sourcefile}" "${imgfile}"'/>
+		</exec>
+        <condition property="VBoxManage.log.present">
+			<available file="${VBoxManage.log.filename}"/>
+        </condition>
+		<echo message="VBoxManage.log.present = ${VBoxManage.log.present}" />
+        <condition property="imgfile.present">
+			<available file="${imgfile}"/>
+        </condition>
+		<echo message="imgfile.present = ${imgfile.present}" />
+	</target>
+	
+	<target name="read_VBoxManage_log" depends="imgfile_is_missing_for_windows" if="VBoxManage.log.present">
+		<jython  import="from python_functions import *" exec="read_file('VBoxManage.log.text','${VBoxManage.log.filename}')"  />
+		<echo message="VBoxManage.log.text = ${VBoxManage.log.text}" />
+	</target>
+	
+	<target name="imgfile_is_missing_for_not_windows" depends="check_os_supported" unless="imgfile.not.present.for.windows">
+		<fail message="Missing or invalid ${imgfile} for an unsupported OS."/>
+	</target>
+	
+	<target name="should_go_or_not" depends="jython_task,pythonTarget,imgfile_is_missing_for_windows,read_VBoxManage_log,imgfile_is_missing_for_not_windows">
+		<echo message="_isZeroSourcefile = ${_isZeroSourcefile}" />
+		<echo message="_isZeroVirtualBoxHome = ${_isZeroVirtualBoxHome}" />
+		<eitherTrue arg1="_isZeroSourcefile" arg2="_isZeroVirtualBoxHome" property="should_go_or_not.isZeroSourcefile_or_isZeroVirtualBoxHome"/>
+		<echo message="should_go_or_not.isZeroSourcefile_or_isZeroVirtualBoxHome = ${should_go_or_not.isZeroSourcefile_or_isZeroVirtualBoxHome}" />
+
+		<echo message="imgfile.not.present = ${imgfile.not.present}" />
+		<eitherTrue arg1="should_go_or_not.isZeroSourcefile_or_isZeroVirtualBoxHome" arg2="imgfile.not.present" property="should_go_or_not.isZeroSourcefile_or_isZeroVirtualBoxHome_or_imgfile.not.present"/>
+		<echo message="should_go_or_not.isZeroSourcefile_or_isZeroVirtualBoxHome_or_imgfile.not.present = ${should_go_or_not.isZeroSourcefile_or_isZeroVirtualBoxHome_or_imgfile.not.present}" />
+
+		<echo message="sourcefile.not.present = ${sourcefile.not.present}" />
+		<eitherTrue arg1="should_go_or_not.isZeroSourcefile_or_isZeroVirtualBoxHome_or_imgfile.not.present" arg2="sourcefile.not.present" property="should_go_or_not.isZeroSourcefile_or_isZeroVirtualBoxHome_or_imgfile.not.present_or_sourcefile.not.present"/>
+		<echo message="should_go_or_not.isZeroSourcefile_or_isZeroVirtualBoxHome_or_imgfile.not.present_or_sourcefile.not.present = ${should_go_or_not.isZeroSourcefile_or_isZeroVirtualBoxHome_or_imgfile.not.present_or_sourcefile.not.present}" />
+	</target>
+
+	<target name="good_to_compress_imgfile" depends="should_go_or_not" if="${imgfile.present}" unless="${should_go_or_not.isZeroSourcefile_or_isZeroVirtualBoxHome_or_imgfile.not.present_or_sourcefile.not.present}">
+		<echo message="Compressing ${imgfile} to ${imgfile.tar} ..." />
+		<jython  import="from python_functions import *" exec="dirname('imgfile.dir','${imgfile}')"  />
+		<jython  import="from python_functions import *" exec="filename('imgfile.filename','${imgfile}')"  />
+		<tar destfile="${imgfile.tar}">
+		  <tarfileset dir="${imgfile.dir}">
+			<include name="${imgfile.filename}"/>
+		  </tarfileset>
+		</tar>
+		<gzip destfile="${imgfile.tar.gz}" src="${imgfile.tar}"/>
+	</target>
+	
+	<target name="imgfile_tar_gz_is_present" depends="good_to_compress_imgfile" if="${imgfile.present}">
+		<property name="imgfile.tar.gz" value="${imgfile.tar.gz}" />
+		<jython  import="from python_functions import *" exec="file_exists('imgfile.tar.gz.present','${imgfile.tar.gz}')"  />
+		<echo message="imgfile.tar.gz.present = ${imgfile.tar.gz.present}" />
+        <condition property="imgfile.tar.gz.present">
+			<equals arg1="${imgfile.tar.gz.present}" arg2="True" trim="true"/>
+        </condition>
+		<echo message="imgfile.tar.gz.present = ${imgfile.tar.gz.present}" />
+	</target>
+	
+	<target name="do_something_with_imgfile_tar_gz" depends="imgfile_tar_gz_is_present" if="${imgfile.tar.gz.present}">
+        <echo message="Great, ${imgfile.tar.gz} exists, lets do something with it !"/>
+	</target>
+	
+    <target name="make_new_instance_at_amazon" depends="do_something_with_imgfile_tar_gz">
+        <echo message='How do I know if "Amazon EC2 API Tools" is installed at "${EC2_HOME}" !!!'/>
+        <echo message='Make a new instance of Ubuntu (to test with) !!!'/>
+        <echo message='Make an EBS for the new instance for the size of the raw image file !!!'/>
+        <echo message='Connect the EBS to the new instance !!!'/>
+        <echo message='Establish an SSH Session with the new instance !!!'/>
+        <echo message='Upload the compressed image file !!!'/>
+        <echo message='Decompress the compressed image file !!!'/>
+        <echo message='dd the image file !!!'/>
+        <echo message='Reboot the newly created instance !!!'/>
+    </target>
+
+    <target name="go" depends="make_new_instance_at_amazon">
+        <echo message="END OF BUILD !!!"/>
+    </target>
+
+</project>
